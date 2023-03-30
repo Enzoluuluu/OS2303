@@ -1,0 +1,3 @@
+﻿  DeviceControl.cpp
+D:\大三下\os课设\OS2303\OS2303\DeviceControl.cpp(278,13): warning C4101: “tempblock”: 未引用的局部变量
+  OS2303.vcxproj -> D:\大三下\os课设\OS2303\x64\Debug\OS2303.exe

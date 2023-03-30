@@ -1,0 +1,9 @@
+﻿  DeviceControl.cpp
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(61,18): warning C4099: “block_Dev”: 类型名称以前使用“class”现在使用的是“struct”
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(11): message : 参见“block_Dev”的声明
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(62,17): warning C4099: “chct_Dev”: 类型名称以前使用“class”现在使用的是“struct”
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(55): message : 参见“chct_Dev”的声明
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(63,17): warning C4099: “chct_Dev”: 类型名称以前使用“class”现在使用的是“struct”
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.h(55): message : 参见“chct_Dev”的声明
+D:\大三下\os课设\OS2303\OS2303\OS2303\DeviceControl.cpp(297,13): warning C4101: “tempblock”: 未引用的局部变量
+  OS2303.vcxproj -> D:\大三下\os课设\OS2303\OS2303\x64\Debug\OS2303.exe

@@ -1,6 +1,7 @@
 #pragma once
 #include<iostream>
 #include<string>
+#include<vector>
 using namespace std;
 
 class DeviceControl;
@@ -10,6 +11,7 @@ class chct_Dev;
 class sdt_Dev;
 class block_Dev;
 class Resource;
+class Resource_control;
 
 class DeviceControl
 {
@@ -17,18 +19,17 @@ public:
 	void initDC();//设备初始化
 	void coct_chct();//控制器与通道的对应列表
 	void coct_busy();//控制器是否被占用
-	//void addpre();//我也不知道为什么要加这个，这个就是个传参的，问就是我垃圾吧
 	int add();//增加设备
 	int del();//删除设备
 	int apply(int);//请求设备
 	int MenuPrint();//主菜单打印
 	void RunDeviceControl(int choose);
 	void ShowDev();
-	//void showstate();//设备状态查看
-	//int DeviceController(char c, char name, char type, int pid = -1);
-	//void DevicePint();//打印设备状态
 	void printfortest(string);//测试用输出
 	void printall();
+	void DeviceInit(string name, int id, char type, sdt_Dev*& sdt, int CName, int PName);
+
+
 };
 
 class dct_Dev //设备控制表
@@ -98,6 +99,32 @@ public:
 	block_Dev* next;//指向阻塞列表下一个被阻塞的设备
 };
 
-//void initDC();//设备初始化
-//void DevicePint();//打印设备状态
-//int DeviceControler(char c,char name,char type,int pid=-1);
+class Resource {
+public:
+	//临界资源
+	int RID;
+	int PID;
+	int status;
+	int Rtype;
+	//RType---0:无交互功能的资源，占用后直接进入运行态，1:有交互功能的设备功能，需要阻塞等待用户输入
+	Resource() {
+		RID = 0;
+		Rtype = 0;
+		PID = 0;
+		status = 0;
+	}
+};
+
+class Resource_control {
+public:
+	int RID_counter;									//RID计数
+	vector<Resource> apply_list;
+	//请求list，记得用完了pop_front()把表清空
+	vector<Resource> update_list;						//更新list，用于将设备模块的更新接入
+	vector<Resource> resource_list;						//资源列表
+	void create_resource(int Rtype);				//创建新的Recource对象
+	void init_list();
+	Resource_control() {
+		RID_counter = 0;
+	}
+};

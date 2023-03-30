@@ -5,6 +5,8 @@
 #include"DeviceControl.h"
 using namespace std;
 
+#define INITDEVICENUM 7
+
 //设备定义
 sdt_Dev* sdt;//设备
 sdt_Dev* first;//设备列表的头结点
@@ -12,10 +14,12 @@ dct_Dev* dct;//设备控制
 coct_Dev* coct;//设备控制器链表
 chct_Dev* chct1, *chct2;//通道1，通道2
 block_Dev* blockdev;//阻塞的设备
-int DeviceNum=3;//设备数，初始为3
+int DeviceNum=7;//设备数，初始为7
 int ControllerNum=4;//控制器数，初始为4
 int Controller[30];//控制器与通道对应表
 int Controller_busy[30];//控制器是否被占用的表
+DeviceControl deviceControl;
+int countId = 1;
 
 //devlist:设备id、设备名、、设备类型、设备状态、控制器、通道
 
@@ -65,6 +69,8 @@ int main()
 void DeviceControl::initDC()
 {
 	blockdev = new (block_Dev);//定义阻塞队列
+	
+	sdt_Dev* newNode = nullptr;
 
 	//初始化通道
 	chct1 = new (chct_Dev);
@@ -81,6 +87,41 @@ void DeviceControl::initDC()
 	//头指针不存设备，设备从第二个空间开始存
 	sdt = new (sdt_Dev);
 	first->next = sdt;
+	
+	deviceControl.DeviceInit("KeyBoard", countId++, 'I', sdt, 1, 1);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("Screen1", countId++, 'O', sdt, 2, 1);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("Mouse", countId++, 'I', sdt, 3, 2);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("Screen2", countId++, 'O', sdt, 1, 1);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("USB", countId++, 'O', sdt, 2, 1);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("Speaker", countId++, 'O', sdt, 4, 2);
+	newNode = new(sdt_Dev);
+	sdt->next = newNode;
+	sdt = sdt->next;
+
+	deviceControl.DeviceInit("Microphone", countId++, 'O', sdt, 4, 2);
+	sdt->next = nullptr;
+
+	/*
 
 	//初始状态下包含键盘、打印机两个设备
 	// 没有初始化变量
@@ -136,11 +177,26 @@ void DeviceControl::initDC()
 	sdt->next->dct->coct->state = 0;//假设控制器被占用（apply测试用）
 	Controller_busy[2] = 0;
 	sdt->next->dct->coct->chct = 1;
-
+	
 	//尾结点置空
 	sdt = sdt->next;
 	sdt->next = new (sdt_Dev);
 	sdt->next = NULL;
+
+	*/
+}
+
+void DeviceControl::DeviceInit(string name, int id, char type, sdt_Dev * &sdt, int CName, int PName) {
+	sdt->name = name;
+	sdt->deviceid = id;
+	sdt->dct = new (dct_Dev);
+	sdt->dct->blockdct = new(block_Dev);
+	sdt->dct->type = type;
+	sdt->dct->state = 0;
+	sdt->dct->coct = new (coct_Dev);
+	sdt->dct->coct->state = 0;
+	sdt->dct->coct->name = CName;
+	sdt->dct->coct->chct = PName;
 }
 
 void DeviceControl::coct_busy()
@@ -192,8 +248,8 @@ int DeviceControl::add()
 	getchar();
 	printf("请输入添加设备名称：");
 	getline(cin, newname);
-	printf("请输入添加设备的id：");
-	cin >> newid;
+	//printf("请输入添加设备的id：");
+	//cin >> newid;
 	printf("请输入添加设备类型：");
 	cin >> newtype;
 	//getchar();
@@ -211,7 +267,7 @@ int DeviceControl::add()
 	}
 	sdt_Dev* NewDev=new (sdt_Dev);
 	NewDev->name = newname;
-	NewDev->deviceid = newid;
+	NewDev->deviceid = countId++;
 	NewDev->dct = new (dct_Dev);
 	NewDev->dct->type = newtype;
 	NewDev->dct->state = 0;//初始设备默认状态为0
@@ -277,9 +333,11 @@ int DeviceControl::apply(int pid_apply)
 {
 	block_Dev* tempblock;
 	getchar();
-	cout << "申请使用的设备名称" << endl;
-	string name_apply;
-	getline(cin, name_apply);
+	cout << "申请使用的设备ID" << endl;
+	//string name_apply;
+	//getline(cin, name_apply);
+	int id;
+	cin >> id;
 
 	sdt_Dev* temp = new (sdt_Dev);
 	temp = first;
@@ -287,7 +345,7 @@ int DeviceControl::apply(int pid_apply)
 	int count = 0;
 	while (count<=DeviceNum)
 	{
-		if (temp->name == name_apply) {
+		if (temp->deviceid == id) {
 			break;
 		}
 		count++;
@@ -305,7 +363,7 @@ int DeviceControl::apply(int pid_apply)
 				Controller_busy[temp->dct->coct->name] = 1;
 				
 				block_Dev* block_temp = new (block_Dev);//设备阻塞列表新建项
-				block_temp->block_name = name_apply;
+				block_temp->block_name = temp->name;
 				block_temp->pid = pid_apply;
 				block_temp->next = new (block_Dev);
 				blockdev->next = block_temp;//将进程加入阻塞列表，设备运行时进程挂起

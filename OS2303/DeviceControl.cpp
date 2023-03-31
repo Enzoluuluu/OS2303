@@ -6,35 +6,37 @@
 using namespace std;
 
 #define INITDEVICENUM 7
+#define RES_LENTH 30
+#define RES_OCCUPIED 1
+#define RES_IDLE 0
+#define RES_NOTEXIST 2
 
-//设备定义
-sdt_Dev* sdt;//设备
-sdt_Dev* first;//设备列表的头结点
-dct_Dev* dct;//设备控制
-coct_Dev* coct;//设备控制器链表
-chct_Dev* chct1, *chct2;//通道1，通道2
-block_Dev* blockdev;//阻塞的设备
-int DeviceNum=7;//设备数，初始为7
-int ControllerNum=4;//控制器数，初始为4
-int Controller[30];//控制器与通道对应表
-int Controller_busy[30];//控制器是否被占用的表
-DeviceControl deviceControl;
-int countId = 1;
-
-//devlist:设备id、设备名、、设备类型、设备状态、控制器、通道
+//devlist:设备id、设备名、设备类型、设备状态、控制器、通道;
+vector<Res_Schedule> ResList;
+DeviceControl* Dev = new DeviceControl();
 
 int main()
 {
-	DeviceControl* Dev = new DeviceControl();
 	Dev->coct_chct();
 	Dev->initDC();
-
+	/*//设备管理测试
 	while (true) {
 		int choice = Dev->MenuPrint();
 		Dev->RunDeviceControl(choice);
 		if (choice == 5)
 			break;
-	}
+	}*/
+	
+	Dev->ShowDev();
+	//资源管理测试
+	Res_Schedule* Res = new Res_Schedule();
+	//vector<Res_Schedule> ResList = new Res_Schedule;
+	Res->ResInit(Dev);
+	Res->ResApply(123, 5);
+	Res->ResApply(456, 4);
+	Res->ResApply(789, 5);
+	Res->ResApply(59, 5);
+	Res->printBlock();
 	
 	//通用测试
 	/*string name;
@@ -64,11 +66,10 @@ int main()
 	
 	return 0;
 }
-
 //设备初始化
 void DeviceControl::initDC()
 {
-	blockdev = new (block_Dev);//定义阻塞队列
+	//blockdev = new (block_Dev);//定义阻塞队列****************
 	
 	sdt_Dev* newNode = nullptr;
 
@@ -88,111 +89,48 @@ void DeviceControl::initDC()
 	sdt = new (sdt_Dev);
 	first->next = sdt;
 	
-	deviceControl.DeviceInit("KeyBoard", countId++, 'I', sdt, 1, 1);
+	DeviceInit("KeyBoard", countId++, 'I', sdt, 1, 1);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("Screen1", countId++, 'O', sdt, 2, 1);
+	DeviceInit("Mouse", countId++, 'I', sdt, 2, 1);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("Mouse", countId++, 'I', sdt, 3, 2);
+	DeviceInit("USB", countId++, 'O', sdt, 3, 2);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("Screen2", countId++, 'O', sdt, 1, 1);
+	DeviceInit("Screen2", countId++, 'O', sdt, 1, 1);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("USB", countId++, 'O', sdt, 2, 1);
+	DeviceInit("Screen1", countId++, 'O', sdt, 2, 1);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("Speaker", countId++, 'O', sdt, 4, 2);
+	DeviceInit("Speaker", countId++, 'O', sdt, 4, 2);
 	newNode = new(sdt_Dev);
 	sdt->next = newNode;
 	sdt = sdt->next;
 
-	deviceControl.DeviceInit("Microphone", countId++, 'O', sdt, 4, 2);
+	DeviceInit("Microphone", countId++, 'O', sdt, 4, 2);
 	sdt->next = nullptr;
-
-	/*
-
-	//初始状态下包含键盘、打印机两个设备
-	// 没有初始化变量
-	sdt->name = "KeyBoard";
-	sdt->deviceid = 1;
-	sdt->dct = new (dct_Dev);
-	sdt->dct->blockdct = new(block_Dev);
-	sdt->dct->blockdct = blockdev;
-	sdt->dct->type = 'I';
-	
-	//sdt = sdt->next;
-	sdt_Dev* sdt2 = new (sdt_Dev);
-	
-	sdt2->name = "Screen";
-	sdt2->deviceid = 2;
-	sdt2->dct = new (dct_Dev);
-	sdt2->dct->blockdct = new(block_Dev);
-	sdt2->dct->blockdct = blockdev;
-	sdt2->dct->type = 'O';
-	sdt->next = sdt2;
-	sdt = sdt->next;
-
-	sdt_Dev* sdt3 = new (sdt_Dev);
-
-	sdt3->name = "Mouse";
-	sdt3->deviceid = 3;
-	sdt3->dct = new (dct_Dev);
-	sdt3->dct->blockdct = new(block_Dev);
-	sdt3->dct->blockdct = blockdev;
-	sdt3->dct->type = 'I';
-	sdt->next = sdt3;
-
-	sdt = first->next;//sdt退回到第一个设备开始循环初始化
-	while (sdt != NULL)
-	{
-		sdt->dct->state = 0;
-		sdt->dct->coct = new (coct_Dev);
-		sdt->dct->coct->state = 0;
-		//sdt->dct->coct->chct = new (chct_Dev);
-		//sdt->dct->coct->chct->state = 0;
-		sdt = sdt->next;
-	}
-	sdt =first->next;//sdt退回到第一个设备分配通道
-	//sdt = sdt->next;
-	//printf("%s\n", sdt->name.c_str());
-	sdt->dct->coct->name = 1;//KeyBoard使用控制器1，通道1
-	sdt->dct->coct->chct = 1;
-	sdt->next->dct->coct->name = 3;//Screen使用控制器3，通道2
-	sdt->next->dct->coct->chct = 2;
-	sdt = sdt->next;
-	//sdt->next->dct->state = 1;//假设设备被占用（apply测试用）
-	sdt->next->dct->coct->name = 2;//Mouse使用控制器2，通道1
-	sdt->next->dct->coct->state = 0;//假设控制器被占用（apply测试用）
-	Controller_busy[2] = 0;
-	sdt->next->dct->coct->chct = 1;
-	
-	//尾结点置空
-	sdt = sdt->next;
-	sdt->next = new (sdt_Dev);
-	sdt->next = NULL;
-
-	*/
 }
 
 void DeviceControl::DeviceInit(string name, int id, char type, sdt_Dev * &sdt, int CName, int PName) {
 	sdt->name = name;
 	sdt->deviceid = id;
 	sdt->dct = new (dct_Dev);
-	sdt->dct->blockdct = new(block_Dev);
+	//sdt->dct->blockdct = new(block_Dev);**********
 	sdt->dct->type = type;
 	sdt->dct->state = 0;
+	sdt->dct->pid = 0;
 	sdt->dct->coct = new (coct_Dev);
 	sdt->dct->coct->state = 0;
 	sdt->dct->coct->name = CName;
@@ -304,8 +242,8 @@ int DeviceControl::add()
 		NewDev->dct->coct->name = coct_select;
 		NewDev->dct->coct->chct = Controller[coct_select];
 	}
-	NewDev->dct->blockdct = new(block_Dev);
-	NewDev->dct->blockdct = blockdev;
+	//NewDev->dct->blockdct = new(block_Dev);***********
+	//NewDev->dct->blockdct = blockdev;**************
 	while (temp->next != NULL){
 		temp = temp->next;
 	}
@@ -331,7 +269,7 @@ void DeviceControl::coct_chct()
 //申请使用设备，并将使用中的设备加入设备阻塞列表，标注进程id
 int DeviceControl::apply(int pid_apply)
 {
-	block_Dev* tempblock;
+	//block_Dev* tempblock;
 	getchar();
 	cout << "申请使用的设备ID" << endl;
 	//string name_apply;
@@ -356,17 +294,19 @@ int DeviceControl::apply(int pid_apply)
 		return 0;
 	}
 	else {
-		if (temp->dct->state == 0&&Controller_busy[temp->dct->coct->name] == 0) {
+		if(temp->dct->state == 0){
+		//if (temp->dct->state == 0&&Controller_busy[temp->dct->coct->name] == 0) {//暂时不考虑控制器冲突问题
 				//设备空闲且设备所需控制器空闲
 				temp->dct->pid = pid_apply;
 				temp->dct->state = 1;
 				Controller_busy[temp->dct->coct->name] = 1;
 				
-				block_Dev* block_temp = new (block_Dev);//设备阻塞列表新建项
-				block_temp->block_name = temp->name;
-				block_temp->pid = pid_apply;
-				block_temp->next = new (block_Dev);
-				blockdev->next = block_temp;//将进程加入阻塞列表，设备运行时进程挂起
+				//******************
+				//block_Dev* block_temp = new (block_Dev);//设备阻塞列表新建项
+				//block_temp->block_name = temp->name;
+				//block_temp->pid = pid_apply;
+				//block_temp->next = new (block_Dev);
+				//blockdev->next = block_temp;//将进程加入阻塞列表，设备运行时进程挂起
 
 				cout << "设备申请成功  " << endl;
 			}
@@ -374,10 +314,10 @@ int DeviceControl::apply(int pid_apply)
 				cout << "设备申请失败！设备被占用。占用进程id：" << temp->dct->pid<<endl;
 				return 0;
 			}
-			else if (temp->dct->state == 0 && Controller_busy[temp->dct->coct->name] == 1) {
+			/*else if (temp->dct->state == 0 && Controller_busy[temp->dct->coct->name] == 1) {
 				cout << "设备申请失败！控制器" << temp->dct->coct->name << "被占用！" << endl;
 				return 0;
-			}
+			}*/
 			else {
 				cout << "因不明原因导致设备申请失败" << endl;
 				return 0;
@@ -397,13 +337,13 @@ int DeviceControl::del()
 	temp = first;
 	temp = temp->next;
 	int count = 0;
-	while (count<=DeviceNum) {
+	while (count<DeviceNum) {
 		if (temp->name == name_del)
 			break;
 		temp = temp->next;
 		count++;
 	}
-	if (count > DeviceNum){
+	if (count >= DeviceNum){
 		cout << "要删除的设备不存在" << endl;
 		return 0;
 	}
@@ -447,8 +387,6 @@ void DeviceControl::ShowDev()
 		printf("%-8d", temp->deviceid);
 		string state0 = "空闲";
 		string state1 = "占用";
-		//string con = "控制器";
-		//string chc = "通道";
 		if (temp->dct->state == 0)
 			printf("%-16s", state0.c_str());
 		else
@@ -462,6 +400,7 @@ void DeviceControl::ShowDev()
 		temp = temp->next;
 	}
 }
+
 int DeviceControl::MenuPrint()
 {
 	cout << "******************设备管理***********************" << endl;
@@ -506,4 +445,88 @@ void DeviceControl::RunDeviceControl(int choose)
 		cout << "输入错误，程序已退出" << endl;
 		return;
 	}
+}
+
+//初始化资源队列
+void Res_Schedule::ResInit(DeviceControl *&Dev)
+{
+	//vector<Res_Schedule> ResList;
+	int countRid = 100;
+	sdt_Dev* temp =Dev->first->next;
+	//初始化设备资源队列
+	for (int i = 0; i < Dev->DeviceNum; i++)
+	{
+		Res_Schedule tmp;
+		tmp.rid = temp->deviceid;
+		tmp.pid_occupy = temp->dct->pid;
+		tmp.state = temp->dct->state;
+		//countRid++;
+		temp = temp->next;
+		ResList.push_back(tmp);
+	}
+	for (int i = Dev->DeviceNum; i < RES_LENTH; i++)
+	{
+		Res_Schedule tmp2;
+		tmp2.rid = countRid;
+		tmp2.pid_occupy = 0;
+		tmp2.state = 0;
+		countRid++;
+		ResList.push_back(tmp2);
+	}
+	//初始化其他临界资源队列
+	
+}
+
+//申请使用、改变
+//键盘-1，鼠标-2，USB-3——为可交互设备
+//rid在4-100是普通设备，100+是普通临界资源
+int Res_Schedule::ResApply(int pid_Apply,int rid_Apply)
+{
+	//查找rid,返回位置
+	int count = 0;
+	for (int i = 0; i < RES_LENTH; i++)
+	{
+		if (ResList[i].rid == rid_Apply) {
+			count = i;
+			break;
+		}
+	}
+	if (count >= RES_LENTH) {
+		cout << "所查找资源不存在！" << endl;
+		return RES_NOTEXIST;
+	}
+	else if(ResList[count].state==0) {
+		//找到资源且资源空闲，资源状态更改为1，
+		ResList[count].state = 1;
+		ResList[count].pid_occupy = pid_Apply;
+		//ResList[count].pid_list.push_back(pid_Apply);
+		return RES_IDLE;
+	}
+	else if (ResList[count].state == 1) {
+		//找到资源但资源被占用，需要排队
+		ResList[count].pid_list.push_back(pid_Apply);
+		return RES_OCCUPIED;
+	}
+}
+
+//打印阻塞队列，用于测试
+void Res_Schedule::printBlock()
+{
+	cout << "\n\n————————设备资源列表————————" << endl;
+	cout << "资源id\t资源状态  占用进程id   等待进程列表\t" << endl;
+	for (int i = 0; i < 30; i++)
+	{
+		printf("%-9d", ResList[i].rid);
+		printf("%-10d", ResList[i].state);
+		printf("pid:%d\t", ResList[i].pid_occupy);
+		for (auto j = ResList[i].pid_list.begin(); j != ResList[i].pid_list.end(); j++)
+		{
+			std::cout << *j << ' ';
+		}
+		printf("\n");
+	}
+}
+
+Res_Schedule::Res_Schedule() {
+	this->pid_list = vector<int>(0, 0);
 }

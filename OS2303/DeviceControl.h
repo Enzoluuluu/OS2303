@@ -12,10 +12,24 @@ class sdt_Dev;
 class block_Dev;
 class Resource;
 class Resource_control;
+class Res_Schedule;
 
 class DeviceControl
 {
 public:
+	sdt_Dev* sdt;//设备
+	sdt_Dev* first;//设备列表的头结点
+	dct_Dev* dct;//设备控制
+	coct_Dev* coct;//设备控制器链表
+	chct_Dev* chct1, * chct2;//通道1，通道2
+
+	int DeviceNum = 7;//设备数，初始为7
+	int ControllerNum = 4;//控制器数，初始为4
+	int Controller[30];//控制器与通道对应表
+	int Controller_busy[30];//控制器是否被占用的表
+
+	int countId = 1;
+
 	void initDC();//设备初始化
 	void coct_chct();//控制器与通道的对应列表
 	void coct_busy();//控制器是否被占用
@@ -29,7 +43,6 @@ public:
 	void printall();
 	void DeviceInit(string name, int id, char type, sdt_Dev*& sdt, int CName, int PName);
 
-
 };
 
 class dct_Dev //设备控制表
@@ -41,7 +54,7 @@ public:
 	int state;//设备状态：等待/不等待  忙/闲0
 	sdt_Dev* sdt;//系统设备
 	coct_Dev* coct;//指向控制器表的指针
-	block_Dev* blockdct;//设备请求失败造成的阻塞队列
+	//block_Dev* blockdct;//设备请求失败造成的阻塞队列******&&
 	dct_Dev* first;//设备队列的队首指针
 };
 
@@ -51,7 +64,7 @@ public:
 	int name;//控制器名称
 	int state;//控制器状态
 	int chct;//设备通道
-	block_Dev* blockco;//控制器被占用造成的阻塞队列
+	//block_Dev* blockco;//控制器被占用造成的阻塞队列****&&
 };
 
 class chct_Dev //通道
@@ -60,7 +73,7 @@ public:
 	int channelid;//通道标识符
 	char name; //通道名称（1,2两个通道）
 	int state; //通道状态
-	block_Dev* blockch;//指向通道被占用造成的阻塞队列
+	//block_Dev* blockch;//指向通道被占用造成的阻塞队列********&&
 	chct_Dev* first;//通道队首指针
 	chct_Dev* last;//通道队尾指针
 };
@@ -90,13 +103,21 @@ public:
 	}
 };
 
-class block_Dev //阻塞设备列表
+class Res_Schedule:public DeviceControl //资源调度列表
 {
 public:
-	int pid;//进程标识（PCB里面包含进程的唯一pid）
-	//其实还有一个global.h，里面定义了pid，但是这里不需要调用这个文件，需要自己再写一个pid
-	string block_name;//阻塞的设备名
-	block_Dev* next;//指向阻塞列表下一个被阻塞的设备
+	vector<int> pid_list;//排队进程标识
+	int pid_occupy;
+	int rtype;//资源类型
+	int rid;//资源id
+	int state;//资源状态
+	//DeviceControl DevCon;
+	//static vector<Res_Schedule> ResList;
+	//Res_Schedule* ResList;
+	Res_Schedule();
+	void ResInit(DeviceControl*& Dev);
+	int ResApply(int pid,int rid);
+	void printBlock();
 };
 
 class Resource {
@@ -106,7 +127,8 @@ public:
 	int PID;
 	int status;
 	int Rtype;
-	//RType---0:无交互功能的资源，占用后直接进入运行态，1:有交互功能的设备功能，需要阻塞等待用户输入
+	//RType---0:无交互功能的资源，占用后直接进入运行态，
+	//1:有交互功能的设备功能，需要阻塞等待用户输入，
 	Resource() {
 		RID = 0;
 		Rtype = 0;

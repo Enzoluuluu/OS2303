@@ -35,7 +35,8 @@ public:
 	void coct_busy();//控制器是否被占用
 	int add();//增加设备
 	int del();//删除设备
-	int apply(int);//请求设备
+	int apply(int,int);//请求设备
+	int Release(int rid);
 	int MenuPrint();//主菜单打印
 	void RunDeviceControl(int choose);
 	void ShowDev();
@@ -111,12 +112,12 @@ public:
 	int rtype;//资源类型
 	int rid;//资源id
 	int state;//资源状态
-	//DeviceControl DevCon;
-	//static vector<Res_Schedule> ResList;
-	//Res_Schedule* ResList;
+
 	Res_Schedule();
 	void ResInit(DeviceControl*& Dev);
 	int ResApply(int pid,int rid);
+	int ResRelease(int pid, int rid);
+	int Search_pidlist(int pid,int count);
 	void printBlock();
 };
 

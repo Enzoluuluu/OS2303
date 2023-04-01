@@ -1,4 +1,4 @@
 ﻿  DeviceControl.cpp
-D:\大三下\os课设\OS2303\OS2303\DeviceControl.cpp(207,6): warning C4101: “newid”: 未引用的局部变量
-D:\大三下\os课设\OS2303\OS2303\DeviceControl.cpp(578): warning C4715: “Res_Schedule::ResApply”: 不是所有的控件路径都返回值
+D:\大三下\os课设\OS2303\OS2303\DeviceControl.cpp(217,6): warning C4101: “newid”: 未引用的局部变量
+D:\大三下\os课设\OS2303\OS2303\DeviceControl.cpp(611): warning C4715: “Res_Schedule::ResApply”: 不是所有的控件路径都返回值
   OS2303.vcxproj -> D:\大三下\os课设\OS2303\x64\Debug\OS2303.exe

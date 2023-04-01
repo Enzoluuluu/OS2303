@@ -118,6 +118,10 @@ public:
 	int ResApply(int pid,int rid);
 	int ResRelease(int pid, int rid);
 	int Search_pidlist(int pid,int count);
+	void InteractDev(int pid, int rid);
+	void Listen_KeyBoard(int pid_Apply);
+	void Listen_Mouse(int pid_Apply);
+	void Listen_USB(int pid_Apply);
 	void printBlock();
 };
 

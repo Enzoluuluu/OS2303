@@ -3,6 +3,7 @@
 #include<stdlib.h>
 #include<string>
 #include <algorithm> 
+#include<windows.h>
 #include"DeviceControl.h"
 using namespace std;
 
@@ -11,6 +12,9 @@ using namespace std;
 #define RES_OCCUPIED 1
 #define RES_IDLE 0
 #define RES_ERROR 2
+#define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0) 
+
+int signal =0;
 
 //devlist:设备id、设备名、设备类型、设备状态、控制器、通道;
 vector<Res_Schedule> ResList;
@@ -35,6 +39,12 @@ int main()
 	Res->ResInit(Dev);
 
 	//申请资源测试
+	Res->ResApply(5, 1);
+	Res->printBlock();
+	Res->ResApply(6, 1);
+	Res->printBlock();
+	Res->ResApply(7, 1);
+	Res->printBlock();
 	Res->ResApply(123, 5);
 	Res->ResApply(456, 4);
 	Res->ResApply(408, 4);
@@ -380,7 +390,7 @@ int DeviceControl::Release(int rid)
 int DeviceControl::del()
 {
 	string name_del;
-	//getchar();
+	getchar();
 	cout << "请输入要删除的设备名称" << endl;
 	getline(cin, name_del);
 	sdt_Dev* temp = new (sdt_Dev);
@@ -465,7 +475,7 @@ int DeviceControl::MenuPrint()
 	cout << "***************************************************" << endl;
 
 	cout << "\n\n" << endl;
-	cout << "请输入需要的功能（输入数字1-5）" << endl;
+	cout << "请输入需要的功能（输入数字1-6）" << endl;
 	int choose;
 	cin >> choose;
 
@@ -544,7 +554,6 @@ void Res_Schedule::ResInit(DeviceControl *&Dev)
 //rid在4-100是普通设备，100+是普通临界资源
 int Res_Schedule::ResApply(int pid_Apply,int rid_Apply)
 {
-	//查找rid,返回位置
 	int count = 0;
 	for (int i = 0; i < RES_LENTH; i++)
 	{
@@ -553,27 +562,51 @@ int Res_Schedule::ResApply(int pid_Apply,int rid_Apply)
 			break;
 		}
 	}
-	if (count >= RES_LENTH) {
-		cout << "所查找资源不存在！" << endl;
+	if (rid_Apply > 3) {
+	//查找rid,返回位置
+		if (count >= RES_LENTH) {
+			cout << "所查找资源不存在！" << endl;
+			return RES_ERROR;
+		}
+		else if(ResList[count].state==0) {
+			//找到资源且资源空闲，资源状态更改为1，
+			ResList[count].state = 1;
+			ResList[count].pid_occupy = pid_Apply;
+			if (rid_Apply < 100) {
+				Dev->apply(pid_Apply,rid_Apply);
+			}
+			//ResList[count].pid_list.push_back(pid_Apply);
+			return RES_IDLE;
+		}
+		else if (ResList[count].state == 1) {
+			//找到资源但资源被占用，需要排队
+			if (rid_Apply < 100) {
+				Dev->apply(pid_Apply, rid_Apply);
+			}
+			ResList[count].pid_list.push_back(pid_Apply);
+			return RES_OCCUPIED;
+		}
+	}
+	else if (rid_Apply == 1 || rid_Apply == 2 || rid_Apply == 3) {//申请可交互设备
+		if (ResList[count].state == 0) {
+			//找到资源且资源空闲，资源状态更改为1，
+			ResList[count].state = 1;
+			ResList[count].pid_occupy = pid_Apply;
+			InteractDev(pid_Apply, rid_Apply);
+			//ResList[count].pid_list.push_back(pid_Apply);
+			return RES_IDLE;
+		}
+		else if (ResList[count].state == 1) {
+			//找到资源但资源被占用，需要排队
+	     	Dev->apply(pid_Apply, rid_Apply);
+			ResList[count].pid_list.push_back(pid_Apply);
+			return RES_OCCUPIED;
+	}
+		
+	}
+	else {
+		cout << "申请资源不存在" << endl;
 		return RES_ERROR;
-	}
-	else if(ResList[count].state==0) {
-		//找到资源且资源空闲，资源状态更改为1，
-		ResList[count].state = 1;
-		ResList[count].pid_occupy = pid_Apply;
-		if (rid_Apply < 100) {
-			Dev->apply(pid_Apply,rid_Apply);
-		}
-		//ResList[count].pid_list.push_back(pid_Apply);
-		return RES_IDLE;
-	}
-	else if (ResList[count].state == 1) {
-		//找到资源但资源被占用，需要排队
-		if (rid_Apply < 100) {
-			Dev->apply(pid_Apply, rid_Apply);
-		}
-		ResList[count].pid_list.push_back(pid_Apply);
-		return RES_OCCUPIED;
 	}
 }
 
@@ -689,6 +722,151 @@ int Res_Schedule::Search_pidlist(int pid,int count)
 
 Res_Schedule::Res_Schedule() {
 	this->pid_list = vector<int>(0, 0);
+}
+
+//可交互设备
+void Res_Schedule::InteractDev(int pid_Apply, int rid_Apply)
+{
+	if (rid_Apply == 1) {
+		Listen_KeyBoard(pid_Apply);
+		cout << signal << endl;
+	}
+	if (rid_Apply == 2) {
+		Listen_Mouse(pid_Apply);
+		cout << signal << endl;
+	}
+	if (rid_Apply == 3) {
+		Listen_USB(pid_Apply);
+		cout << signal << endl;
+	}
+}
+
+void Res_Schedule::Listen_KeyBoard(int pid_Apply)
+{
+	char i;
+	cout << "输入‘#’后按下回车结束输入" << endl;
+	while (1) {
+		i = getchar();
+		if (i == '#')
+			break;
+	}
+	if (ResList[0].pid_occupy == pid_Apply) {
+		if (Search_pidlist(pid_Apply, 0) == 2) {//等待队列为空
+			ResList[0].state = 0;//释放资源，资源空闲
+			Dev->Release(1);//释放设备，设备空闲
+			cout << "已成功释放设备！" << endl;
+			//ResList[count].pid_occupy = 0;
+		}
+		else if (Search_pidlist(pid_Apply, 0) == 0) {//等待队列不为空
+			ResList[1].pid_occupy = ResList[0].pid_list.front();//占用设备的进程修改为队列首进程
+			vector<int> ::iterator temp;
+			temp = find(ResList[0].pid_list.begin(), ResList[0].pid_list.end() - 1, pid_Apply);
+			if (temp != ResList[0].pid_list.begin()) {
+				temp = ResList[0].pid_list.erase(temp - 1);//在该资源的进程等待队列中删除该进程
+			}
+			else {
+				ResList[0].pid_list.erase(ResList[0].pid_list.begin());
+			}
+		}
+
+	}
+	else {
+		if (Search_pidlist(pid_Apply, 0) == 1) {//进程尚未使用该资源，且该进程在阻塞队列里面
+			cout << "该进程尚未使用此设备，已将该进程从阻塞队列中移除，返回值为当前占用该资源的进程" << endl;
+		}
+		else {
+			cout << "该进程未使用此设备，且不在阻塞队列中，请检查进程输入是否正确" << endl;
+		}
+	}
+	signal = 1;
+}
+
+void Res_Schedule::Listen_Mouse(int pid_Apply)
+{
+	printf("试试按下鼠标吧！只是改变一下控制台颜色，按鼠标右键退出");
+	for (;;) {
+		if (KEY_DOWN(MOUSE_MOVED)) {
+			system("color 97");
+		}
+		else if (KEY_DOWN(MOUSE_EVENT)) {
+			signal = 2;
+			return;
+		}
+		else if (KEY_DOWN(MOUSE_WHEELED)) {
+			system("color 17");
+		}
+		else {
+			system("color 07");
+		}
+	}
+	if (ResList[1].pid_occupy == pid_Apply) {
+		if (Search_pidlist(pid_Apply, 1) == 2) {//等待队列为空
+			ResList[1].state = 0;//释放资源，资源空闲
+			Dev->Release(2);//释放设备，设备空闲
+			cout << "已成功释放设备！" << endl;
+			//ResList[count].pid_occupy = 0;
+		}
+		else if (Search_pidlist(pid_Apply, 1) == 0) {//等待队列不为空
+			ResList[1].pid_occupy = ResList[1].pid_list.front();//占用设备的进程修改为队列首进程
+			vector<int> ::iterator temp;
+			temp = find(ResList[1].pid_list.begin(), ResList[1].pid_list.end() - 1, pid_Apply);
+			if (temp != ResList[1].pid_list.begin()) {
+				temp = ResList[1].pid_list.erase(temp - 1);//在该资源的进程等待队列中删除该进程
+			}
+			else {
+				ResList[1].pid_list.erase(ResList[1].pid_list.begin());
+			}
+		}
+
+	}
+	else {
+		if (Search_pidlist(pid_Apply, 1) == 1) {//进程尚未使用该资源，且该进程在阻塞队列里面
+			cout << "该进程尚未使用此设备，已将该进程从阻塞队列中移除，返回值为当前占用该资源的进程" << endl;
+		}
+		else {
+			cout << "该进程未使用此设备，且不在阻塞队列中，请检查进程输入是否正确" << endl;
+		}
+	}
+}
+
+void Res_Schedule::Listen_USB(int pid_Apply)
+{
+	char i;
+	cout << "模拟插入USB，输入‘#’后按下回车就插完了" << endl;
+	while (1) {
+		i = getchar();
+		if (i == '#')
+			break;
+	}
+	if (ResList[2].pid_occupy == pid_Apply) {
+		if (Search_pidlist(pid_Apply, 2) == 2) {//等待队列为空
+			ResList[2].state = 0;//释放资源，资源空闲
+			Dev->Release(3);//释放设备，设备空闲
+			cout << "已成功释放设备！" << endl;
+			//ResList[count].pid_occupy = 0;
+		}
+		else if (Search_pidlist(pid_Apply,2) == 0) {//等待队列不为空
+			ResList[2].pid_occupy = ResList[2].pid_list.front();//占用设备的进程修改为队列首进程
+			vector<int> ::iterator temp;
+			temp = find(ResList[2].pid_list.begin(), ResList[2].pid_list.end() - 1, pid_Apply);
+			if (temp != ResList[2].pid_list.begin()) {
+				temp = ResList[2].pid_list.erase(temp - 1);//在该资源的进程等待队列中删除该进程
+			}
+			else {
+				ResList[2].pid_list.erase(ResList[2].pid_list.begin());
+			}
+		}
+
+	}
+	else {
+		if (Search_pidlist(pid_Apply, 2) == 1) {//进程尚未使用该资源，且该进程在阻塞队列里面
+			cout << "该进程尚未使用此设备，已将该进程从阻塞队列中移除，返回值为当前占用该资源的进程" << endl;
+		}
+		else {
+			cout << "该进程未使用此设备，且不在阻塞队列中，请检查进程输入是否正确" << endl;
+		}
+	}
+	signal = 3;
 }
 
 //打印阻塞队列

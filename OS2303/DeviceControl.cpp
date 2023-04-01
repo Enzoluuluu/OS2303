@@ -39,11 +39,15 @@ int main()
 	Res->ResInit(Dev);
 
 	//申请资源测试
-	Res->ResApply(5, 1);
+	//Res->ResApply(5, 1);
+	//Res->printBlock();
+	Res->ResApply(6, 2);
+	cout << "啊？" << endl;
 	Res->printBlock();
-	Res->ResApply(6, 1);
+	Res->ResApply(7, 2);
+	cout << "为什么" << endl;
 	Res->printBlock();
-	Res->ResApply(7, 1);
+	Res->ResApply(8, 3);
 	Res->printBlock();
 	Res->ResApply(123, 5);
 	Res->ResApply(456, 4);
@@ -783,21 +787,12 @@ void Res_Schedule::Listen_KeyBoard(int pid_Apply)
 
 void Res_Schedule::Listen_Mouse(int pid_Apply)
 {
-	printf("试试按下鼠标吧！只是改变一下控制台颜色，按鼠标右键退出");
-	for (;;) {
-		if (KEY_DOWN(MOUSE_MOVED)) {
-			system("color 97");
-		}
-		else if (KEY_DOWN(MOUSE_EVENT)) {
-			signal = 2;
-			return;
-		}
-		else if (KEY_DOWN(MOUSE_WHEELED)) {
-			system("color 17");
-		}
-		else {
-			system("color 07");
-		}
+	char i;
+	cout << "模拟监听鼠标事件，输入‘#’后按下回车结束输入" << endl;
+	while (1) {
+		i = getchar();
+		if (i == '#')
+			break;
 	}
 	if (ResList[1].pid_occupy == pid_Apply) {
 		if (Search_pidlist(pid_Apply, 1) == 2) {//等待队列为空
@@ -824,9 +819,11 @@ void Res_Schedule::Listen_Mouse(int pid_Apply)
 			cout << "该进程尚未使用此设备，已将该进程从阻塞队列中移除，返回值为当前占用该资源的进程" << endl;
 		}
 		else {
+			cout << "pid:" << pid_Apply << endl;
 			cout << "该进程未使用此设备，且不在阻塞队列中，请检查进程输入是否正确" << endl;
 		}
 	}
+	signal = 2;
 }
 
 void Res_Schedule::Listen_USB(int pid_Apply)
